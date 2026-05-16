@@ -206,10 +206,12 @@ def cmd_train(args):
 def cmd_infer(args):
     import torch
     from model import Transformer
+    from train import load_checkpoint
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Loading model...")
     model = Transformer(checkpoint_path=args.checkpoint).to(device)
+    load_checkpoint(args.checkpoint, model)
     model.eval()
 
     translation = model.infer(args.sentence)
