@@ -18,7 +18,6 @@ import math
 import copy
 import os
 import re
-import spacy
 import gdown
 from typing import Optional, Tuple
 
@@ -30,13 +29,12 @@ import torch.nn.functional as F
 GDRIVE_FILE_ID = "1aB13TQT5epPet7AkCDc_HD4d-vk9_vtB"
 
 
-def _make_tokenizer(spacy_model: str):
-    """Return a spaCy tokenizer, falling back to a simple regex tokenizer."""
-    try:
-        nlp = spacy.load(spacy_model)
-        return lambda text: [tok.text.lower() for tok in nlp(text)]
-    except OSError:
-        return lambda text: re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
+def _tok_de(text: str):
+    return re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
+
+
+def _tok_en(text: str):
+    return re.findall(r"[a-zA-Z\-]+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -348,48 +346,53 @@ class Transformer(nn.Module):
         d_ff: int = 512,
         dropout: float = 0.1,
         checkpoint_path: str = "best_checkpoint.pth",
+        load_pretrained: bool = True,
     ) -> None:
         super().__init__()
         self.d_model = d_model
 
-        # ── 1. Tokenizers ────────────────────────────────────────────
-        self._tok_de = _make_tokenizer("de_core_news_sm")
-        self._tok_en = _make_tokenizer("en_core_web_sm")
+        # ── 1. Tokenizers (regex — no external model required) ───────
+        self._tok_de = _tok_de
+        self._tok_en = _tok_en
 
-        # ── 2. Vocabulary (built from Multi30k train split) ──────────
-        from dataset import Multi30kDataset
+        # ── 2. Download checkpoint if needed (inference / autograder) ─
+        ckpt = None
+        if load_pretrained:
+            if GDRIVE_FILE_ID and not GDRIVE_FILE_ID.startswith("<"):
+                if not os.path.exists(checkpoint_path):
+                    gdown.download(id=GDRIVE_FILE_ID, output=checkpoint_path, quiet=False)
+            if os.path.exists(checkpoint_path):
+                ckpt = torch.load(checkpoint_path, map_location="cpu")
 
-        _train = Multi30kDataset("train")
-        self._src_vocab, self._tgt_vocab = _train.build_vocab(min_freq=2)
+        # ── 3. Vocabulary — from checkpoint or built fresh ────────────
+        if ckpt is not None and "src_vocab" in ckpt and "tgt_vocab" in ckpt:
+            self._src_vocab = ckpt["src_vocab"]
+            self._tgt_vocab = ckpt["tgt_vocab"]
+        else:
+            from dataset import Multi30kDataset
+            _train = Multi30kDataset("train")
+            self._src_vocab, self._tgt_vocab = _train.build_vocab(min_freq=2)
 
         src_vocab_size = len(self._src_vocab)
         tgt_vocab_size = len(self._tgt_vocab)
 
-        # ── 3. Model architecture ────────────────────────────────────
+        # ── 4. Model architecture ────────────────────────────────────
         self.src_embed = nn.Embedding(src_vocab_size, d_model)
         self.tgt_embed = nn.Embedding(tgt_vocab_size, d_model)
-        self.pos_enc = PositionalEncoding(d_model, dropout)
+        self.pos_enc   = PositionalEncoding(d_model, dropout)
 
-        enc_layer = EncoderLayer(d_model, num_heads, d_ff, dropout)
-        dec_layer = DecoderLayer(d_model, num_heads, d_ff, dropout)
+        enc_layer    = EncoderLayer(d_model, num_heads, d_ff, dropout)
+        dec_layer    = DecoderLayer(d_model, num_heads, d_ff, dropout)
         self.encoder = Encoder(enc_layer, N)
         self.decoder = Decoder(dec_layer, N)
-        self.fc_out = nn.Linear(d_model, tgt_vocab_size)
+        self.fc_out  = nn.Linear(d_model, tgt_vocab_size)
 
         self._init_weights()
 
-        # ── 4. Download pretrained weights from Google Drive ─────────
-        #    Fill GDRIVE_FILE_ID at the top of this file after uploading
-        #    your trained checkpoint. During training, leave the ID as
-        #    the placeholder and weights will not be loaded.
-        if GDRIVE_FILE_ID and not GDRIVE_FILE_ID.startswith("<"):
-            if not os.path.exists(checkpoint_path):
-                gdown.download(id=GDRIVE_FILE_ID, output=checkpoint_path, quiet=False)
-            if os.path.exists(checkpoint_path):
-                ckpt = torch.load(checkpoint_path, map_location="cpu")
-                state = ckpt.get("model_state_dict", ckpt)
-                self.load_state_dict(state)
-                print(f"Loaded pretrained weights from '{checkpoint_path}'")
+        # ── 5. Load pretrained weights ────────────────────────────────
+        if ckpt is not None:
+            self.load_state_dict(ckpt.get("model_state_dict", ckpt))
+            print(f"Loaded pretrained weights from '{checkpoint_path}'")
 
     def _init_weights(self):
         for p in self.parameters():

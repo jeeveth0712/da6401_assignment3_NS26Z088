@@ -4,16 +4,14 @@ from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from datasets import load_dataset
 from collections import Counter
-import spacy
 
 
-def _make_tokenizer(spacy_model: str):
-    """Return a spaCy tokenizer, falling back to a simple regex tokenizer."""
-    try:
-        nlp = spacy.load(spacy_model)
-        return lambda text: [tok.text.lower() for tok in nlp(text)]
-    except OSError:
-        return lambda text: re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
+def _tok_de(text: str):
+    return re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
+
+
+def _tok_en(text: str):
+    return re.findall(r"[a-zA-Z\-]+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -72,8 +70,8 @@ class Multi30kDataset(Dataset):
 
     def __init__(self, split: str = 'train'):
         self.split = split
-        self._tok_de = _make_tokenizer('de_core_news_sm')
-        self._tok_en = _make_tokenizer('en_core_web_sm')
+        self._tok_de = _tok_de
+        self._tok_en = _tok_en
 
         raw = load_dataset('bentrevett/multi30k')
         self.raw_data = raw[split]

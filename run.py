@@ -116,12 +116,13 @@ def cmd_train(args):
     # ── Model (vocab + tokenizer built inside __init__) ───────────────
     print("Building model and vocabulary...")
     model = Transformer(
-        d_model   = args.d_model,
-        N         = args.N,
-        num_heads = args.num_heads,
-        d_ff      = args.d_ff,
-        dropout   = args.dropout,
+        d_model         = args.d_model,
+        N               = args.N,
+        num_heads       = args.num_heads,
+        d_ff            = args.d_ff,
+        dropout         = args.dropout,
         checkpoint_path = args.checkpoint,
+        load_pretrained = False,
     ).to(device)
 
     src_vocab = model._src_vocab
@@ -206,12 +207,10 @@ def cmd_train(args):
 def cmd_infer(args):
     import torch
     from model import Transformer
-    from train import load_checkpoint
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Loading model...")
     model = Transformer(checkpoint_path=args.checkpoint).to(device)
-    load_checkpoint(args.checkpoint, model)
     model.eval()
 
     translation = model.infer(args.sentence)

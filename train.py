@@ -274,6 +274,8 @@ def save_checkpoint(
         'optimizer_state_dict': optimizer.state_dict(),
         'scheduler_state_dict': scheduler.state_dict(),
         'model_config':         model_config,
+        'src_vocab':            model._src_vocab,
+        'tgt_vocab':            model._tgt_vocab,
     }, path)
 
 
