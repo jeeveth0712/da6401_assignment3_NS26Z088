@@ -43,6 +43,10 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.claude/
+.dual-graph/
+CLAUDE.md
+question.md
 nosetests.xml
 coverage.xml
 *.cover
