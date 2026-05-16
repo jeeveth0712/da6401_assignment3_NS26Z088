@@ -362,7 +362,7 @@ class Transformer(nn.Module):
                 if not os.path.exists(checkpoint_path):
                     gdown.download(id=GDRIVE_FILE_ID, output=checkpoint_path, quiet=False)
             if os.path.exists(checkpoint_path):
-                ckpt = torch.load(checkpoint_path, map_location="cpu")
+                ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
         # ── 3. Vocabulary — from checkpoint or built fresh ────────────
         if ckpt is not None and "src_vocab" in ckpt and "tgt_vocab" in ckpt:

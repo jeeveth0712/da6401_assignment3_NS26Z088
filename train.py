@@ -286,7 +286,7 @@ def load_checkpoint(
     scheduler=None,
 ) -> int:
     """Restore model (and optionally optimizer/scheduler) from disk."""
-    checkpoint = torch.load(path, map_location='cpu')
+    checkpoint = torch.load(path, map_location='cpu', weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
