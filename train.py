@@ -25,7 +25,7 @@ from typing import Optional
 import wandb
 
 from model import Transformer, make_src_mask, make_tgt_mask
-from utils import NoamScheduler
+from lr_scheduler import NoamScheduler
 from dataset import Multi30kDataset, collate_fn
 
 
@@ -354,8 +354,9 @@ def run_training_experiment() -> None:
     test_loader  = DataLoader(test_ds,  batch_size=1,
                               shuffle=False, collate_fn=_collate)
 
+    # lr=1.0 because NoamScheduler scales base_lr × Noam_factor
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9
+        model.parameters(), lr=1.0, betas=(0.9, 0.98), eps=1e-9
     )
     scheduler = NoamScheduler(optimizer, cfg.d_model, warmup_steps=cfg.warmup_steps)
     loss_fn   = LabelSmoothingLoss(len(tgt_vocab), pad_idx, smoothing=cfg.label_smooth)

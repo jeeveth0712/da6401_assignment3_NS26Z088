@@ -96,7 +96,7 @@ def cmd_train(args):
 
     from model import Transformer
     from dataset import Multi30kDataset, collate_fn
-    from utils import NoamScheduler
+    from lr_scheduler import NoamScheduler
     from train import (
         LabelSmoothingLoss, run_epoch,
         evaluate_bleu, save_checkpoint, load_checkpoint,
@@ -156,8 +156,9 @@ def cmd_train(args):
     print(f"Trainable parameters: {total_params:,}")
 
     # ── Optimizer / Scheduler / Loss ─────────────────────────────────
+    # lr=1.0 because NoamScheduler scales base_lr × Noam_factor
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9
+        model.parameters(), lr=1.0, betas=(0.9, 0.98), eps=1e-9
     )
     scheduler = NoamScheduler(optimizer, args.d_model, warmup_steps=args.warmup_steps)
     loss_fn   = LabelSmoothingLoss(len(tgt_vocab), pad_idx, smoothing=args.label_smooth)
