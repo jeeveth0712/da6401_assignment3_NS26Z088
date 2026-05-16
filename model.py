@@ -17,6 +17,7 @@ AUTOGRADER CONTRACT (DO NOT MODIFY SIGNATURES):
 import math
 import copy
 import os
+import re
 import spacy
 import gdown
 from typing import Optional, Tuple
@@ -27,6 +28,15 @@ import torch.nn.functional as F
 
 # ── Fill in your Google Drive file ID after uploading your trained checkpoint ──
 GDRIVE_FILE_ID = "1aB13TQT5epPet7AkCDc_HD4d-vk9_vtB"
+
+
+def _make_tokenizer(spacy_model: str):
+    """Return a spaCy tokenizer, falling back to a simple regex tokenizer."""
+    try:
+        nlp = spacy.load(spacy_model)
+        return lambda text: [tok.text.lower() for tok in nlp(text)]
+    except OSError:
+        return lambda text: re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -343,8 +353,8 @@ class Transformer(nn.Module):
         self.d_model = d_model
 
         # ── 1. Tokenizers ────────────────────────────────────────────
-        self.de_nlp = spacy.load("de_core_news_sm")
-        self.en_nlp = spacy.load("en_core_web_sm")
+        self._tok_de = _make_tokenizer("de_core_news_sm")
+        self._tok_en = _make_tokenizer("en_core_web_sm")
 
         # ── 2. Vocabulary (built from Multi30k train split) ──────────
         from dataset import Multi30kDataset
@@ -463,7 +473,7 @@ class Transformer(nn.Module):
         pad_tgt = tgt_stoi["<pad>"]
         unk = src_stoi["<unk>"]
 
-        tokens = [tok.text.lower() for tok in self.de_nlp(src_sentence)]
+        tokens = self._tok_de(src_sentence)
         ids = [sos_src] + [src_stoi.get(t, unk) for t in tokens] + [eos_src]
         src = torch.tensor(ids, dtype=torch.long, device=device).unsqueeze(0)
         src_mask = make_src_mask(src)

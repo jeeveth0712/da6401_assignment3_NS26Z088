@@ -1,9 +1,19 @@
+import re
 import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from datasets import load_dataset
 from collections import Counter
 import spacy
+
+
+def _make_tokenizer(spacy_model: str):
+    """Return a spaCy tokenizer, falling back to a simple regex tokenizer."""
+    try:
+        nlp = spacy.load(spacy_model)
+        return lambda text: [tok.text.lower() for tok in nlp(text)]
+    except OSError:
+        return lambda text: re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -62,8 +72,8 @@ class Multi30kDataset(Dataset):
 
     def __init__(self, split: str = 'train'):
         self.split = split
-        self.de_nlp = spacy.load('de_core_news_sm')
-        self.en_nlp = spacy.load('en_core_web_sm')
+        self._tok_de = _make_tokenizer('de_core_news_sm')
+        self._tok_en = _make_tokenizer('en_core_web_sm')
 
         raw = load_dataset('bentrevett/multi30k')
         self.raw_data = raw[split]
@@ -71,14 +81,6 @@ class Multi30kDataset(Dataset):
         self.src_vocab = None
         self.tgt_vocab = None
         self.data      = []
-
-    # ── tokenizers ──────────────────────────────────────────────────
-
-    def _tok_de(self, text: str):
-        return [tok.text.lower() for tok in self.de_nlp(text)]
-
-    def _tok_en(self, text: str):
-        return [tok.text.lower() for tok in self.en_nlp(text)]
 
     # ── vocab ────────────────────────────────────────────────────────
 
