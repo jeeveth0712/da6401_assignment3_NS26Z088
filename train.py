@@ -195,7 +195,7 @@ def evaluate_bleu(
     """
     try:
         from sacrebleu.metrics import BLEU as SacreBLEU
-        bleu_scorer = SacreBLEU(tokenize='none')
+        bleu_scorer = SacreBLEU(tokenize='13a')
         use_sacrebleu = True
     except ImportError:
         use_sacrebleu = False
