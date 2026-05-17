@@ -6,12 +6,13 @@ from datasets import load_dataset
 from collections import Counter
 
 
-def _tok_de(text: str):
-    return re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
-
-
-def _tok_en(text: str):
-    return re.findall(r"[a-zA-Z\-]+|[^\w\s]", text.lower())
+def _make_tokenizer(model_name: str):
+    try:
+        import spacy as _spacy  # noqa: PLC0415
+        _nlp = _spacy.load(model_name)
+        return lambda text: [t.text.lower() for t in _nlp(text)]
+    except OSError:
+        return lambda text: re.findall(r"\w+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -70,8 +71,8 @@ class Multi30kDataset(Dataset):
 
     def __init__(self, split: str = 'train'):
         self.split = split
-        self._tok_de = _tok_de
-        self._tok_en = _tok_en
+        self._tok_de = _make_tokenizer("de_core_news_sm")
+        self._tok_en = _make_tokenizer("en_core_web_sm")
 
         raw = load_dataset('bentrevett/multi30k')
         self.raw_data = raw[split]

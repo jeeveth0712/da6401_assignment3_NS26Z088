@@ -29,12 +29,13 @@ import torch.nn.functional as F
 GDRIVE_FILE_ID = "1CFC-wG-zjYMbBow2kkFcLOT_54zw6AF_"
 
 
-def _tok_de(text: str):
-    return re.findall(r"[a-zA-ZäöüÄÖÜß\-]+|[^\w\s]", text.lower())
-
-
-def _tok_en(text: str):
-    return re.findall(r"[a-zA-Z\-]+|[^\w\s]", text.lower())
+def _make_tokenizer(model_name: str):
+    try:
+        import spacy as _spacy  # noqa: PLC0415
+        _nlp = _spacy.load(model_name)
+        return lambda text: [t.text.lower() for t in _nlp(text)]
+    except OSError:
+        return lambda text: re.findall(r"\w+|[^\w\s]", text.lower())
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -351,9 +352,9 @@ class Transformer(nn.Module):
         super().__init__()
         self.d_model = d_model
 
-        # ── 1. Tokenizers (regex — no external model required) ───────
-        self._tok_de = _tok_de
-        self._tok_en = _tok_en
+        # ── 1. Tokenizers (spaCy when available, regex fallback) ─────
+        self._tok_de = _make_tokenizer("de_core_news_sm")
+        self._tok_en = _make_tokenizer("en_core_web_sm")
 
         # ── 2. Download checkpoint if needed (inference / autograder) ─
         ckpt = None
