@@ -350,7 +350,6 @@ class Transformer(nn.Module):
         load_pretrained: bool = True,
     ) -> None:
         super().__init__()
-        self.d_model = d_model
 
         # ── 1. Tokenizers (spaCy when available, regex fallback) ─────
         self._tok_de = _make_tokenizer("de_core_news_sm")
@@ -369,29 +368,38 @@ class Transformer(nn.Module):
                     checkpoint_path, map_location="cpu", weights_only=False
                 )
 
-        # ── 3. Vocabulary — from checkpoint or built fresh ────────────
+        # ── 3. Override arch params from checkpoint if available ──────
+        if ckpt is not None and "model_config" in ckpt:
+            cfg = ckpt["model_config"]
+            d_model   = cfg.get("d_model",   d_model)
+            N         = cfg.get("N",          N)
+            num_heads = cfg.get("num_heads",  num_heads)
+            d_ff      = cfg.get("d_ff",       d_ff)
+            dropout   = cfg.get("dropout",    dropout)
+        self.d_model = d_model
+
+        # ── 4. Vocabulary — from checkpoint or built fresh ────────────
         if ckpt is not None and "src_vocab" in ckpt and "tgt_vocab" in ckpt:
             self._src_vocab = ckpt["src_vocab"]
             self._tgt_vocab = ckpt["tgt_vocab"]
         else:
             from dataset import Multi30kDataset
-
             _train = Multi30kDataset("train")
             self._src_vocab, self._tgt_vocab = _train.build_vocab(min_freq=2)
 
         src_vocab_size = len(self._src_vocab)
         tgt_vocab_size = len(self._tgt_vocab)
 
-        # ── 4. Model architecture ────────────────────────────────────
+        # ── 5. Model architecture ────────────────────────────────────
         self.src_embed = nn.Embedding(src_vocab_size, d_model)
         self.tgt_embed = nn.Embedding(tgt_vocab_size, d_model)
-        self.pos_enc = PositionalEncoding(d_model, dropout)
+        self.pos_enc   = PositionalEncoding(d_model, dropout)
 
         enc_layer = EncoderLayer(d_model, num_heads, d_ff, dropout)
         dec_layer = DecoderLayer(d_model, num_heads, d_ff, dropout)
         self.encoder = Encoder(enc_layer, N)
         self.decoder = Decoder(dec_layer, N)
-        self.fc_out = nn.Linear(d_model, tgt_vocab_size)
+        self.fc_out  = nn.Linear(d_model, tgt_vocab_size)
 
         self._init_weights()
 
