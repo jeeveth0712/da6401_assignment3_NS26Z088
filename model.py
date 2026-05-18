@@ -26,12 +26,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # ── Fill in your Google Drive file ID after uploading your trained checkpoint ──
-GDRIVE_FILE_ID = "1CFC-wG-zjYMbBow2kkFcLOT_54zw6AF_"
+GDRIVE_FILE_ID = "1IiOZIU0e9_Jwr5H_XsbTZ2lvXkWLc1IR"
 
 
 def _make_tokenizer(model_name: str):
     try:
         import spacy as _spacy  # noqa: PLC0415
+
         _nlp = _spacy.load(model_name)
         return lambda text: [t.text.lower() for t in _nlp(text)]
     except OSError:
@@ -371,11 +372,11 @@ class Transformer(nn.Module):
         # ── 3. Override arch params from checkpoint if available ──────
         if ckpt is not None and "model_config" in ckpt:
             cfg = ckpt["model_config"]
-            d_model   = cfg.get("d_model",   d_model)
-            N         = cfg.get("N",          N)
-            num_heads = cfg.get("num_heads",  num_heads)
-            d_ff      = cfg.get("d_ff",       d_ff)
-            dropout   = cfg.get("dropout",    dropout)
+            d_model = cfg.get("d_model", d_model)
+            N = cfg.get("N", N)
+            num_heads = cfg.get("num_heads", num_heads)
+            d_ff = cfg.get("d_ff", d_ff)
+            dropout = cfg.get("dropout", dropout)
         self.d_model = d_model
 
         # ── 4. Vocabulary — from checkpoint or built fresh ────────────
@@ -384,6 +385,7 @@ class Transformer(nn.Module):
             self._tgt_vocab = ckpt["tgt_vocab"]
         else:
             from dataset import Multi30kDataset
+
             _train = Multi30kDataset("train")
             self._src_vocab, self._tgt_vocab = _train.build_vocab(min_freq=2)
 
@@ -393,13 +395,13 @@ class Transformer(nn.Module):
         # ── 5. Model architecture ────────────────────────────────────
         self.src_embed = nn.Embedding(src_vocab_size, d_model)
         self.tgt_embed = nn.Embedding(tgt_vocab_size, d_model)
-        self.pos_enc   = PositionalEncoding(d_model, dropout)
+        self.pos_enc = PositionalEncoding(d_model, dropout)
 
         enc_layer = EncoderLayer(d_model, num_heads, d_ff, dropout)
         dec_layer = DecoderLayer(d_model, num_heads, d_ff, dropout)
         self.encoder = Encoder(enc_layer, N)
         self.decoder = Decoder(dec_layer, N)
-        self.fc_out  = nn.Linear(d_model, tgt_vocab_size)
+        self.fc_out = nn.Linear(d_model, tgt_vocab_size)
 
         self._init_weights()
 
