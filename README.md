@@ -2,13 +2,13 @@
 
 ---
 
-# 🔗 IMPORTANT LINKS
+# IMPORTANT LINKS
 
-## 📦 GITHUB REPOSITORY
+## GITHUB REPOSITORY
 
 https://github.com/jeeveth0712/da6401_assignment3_NS26Z088
 
-## 📊 WANDB REPORT
+## WANDB REPORT
 
 https://api.wandb.ai/links/ns26z088-team/zcrd11lm
 
