@@ -6,11 +6,11 @@
 
 ## 📦 GITHUB REPOSITORY
 
-# [https://github.com/jeeveth0712/da6401_assignment3_NS26Z088](https://github.com/jeeveth0712/da6401_assignment3_NS26Z088)
+https://github.com/jeeveth0712/da6401_assignment3_NS26Z088
 
 ## 📊 WANDB REPORT
 
-# [https://api.wandb.ai/links/ns26z088-team/zcrd11lm](https://api.wandb.ai/links/ns26z088-team/zcrd11lm)
+https://api.wandb.ai/links/ns26z088-team/zcrd11lm
 
 ---
 
